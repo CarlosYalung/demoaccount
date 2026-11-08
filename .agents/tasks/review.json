@@ -1,0 +1,21 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "id": 1,
+      "label": "Duplicate demo-mode logic across functions",
+      "description": "isDemoMode(), fetchAllProperties(), fetchStudentBookings(), fetchUserMessages(), and several others each contain independent checks for demo accounts and GitHub Pages. If the demo account list or detection criteria need to change, every function must be updated. Consolidate to a single source of truth."
+    },
+    {
+      "id": 2,
+      "label": "Unclear demo-vs-GitHub-Pages semantics",
+      "description": "Functions check both demo accounts and GitHub Pages as separate conditions ORed together, but it's not documented why. Should GitHub Pages always use demo mode, or only when no backend is available? Clarify whether these are fallback levels or equivalent triggers."
+    },
+    {
+      "id": 3,
+      "label": "Saved dorms not persisted in demo mode",
+      "description": "Demo students can favorite dorms and see them in the Saved tab, but favorites are stored only in savedDormsList (in-memory). On page refresh or logout, all saved dorms are lost. Consider using localStorage or the /api/bookmarks endpoint to persist (though the Flask backend doesn't currently have a bookmarks table)."
+    }
+  ],
+  "reviewDoc": "c:\\Users\\PC\\Videos\\copy final\\.agents\\tasks\\review.md"
+}
