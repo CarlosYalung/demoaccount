@@ -1515,7 +1515,7 @@
         rent: '5000',
         totalRooms: '20',
         availRooms: '8',
-        occupied: '12',
+        occupied: '12/20',
         desc: 'This is a demo dormitory showcasing the property listing features. Located in the heart of Minglanilla near campus.',
         rules: 'No smoking, No pets, Quiet hours 10PM-8AM',
         amenities: ['Wi-Fi', 'Common Room', 'Kitchen', 'Laundry'],
@@ -1533,7 +1533,7 @@
         rent: '4500',
         totalRooms: '15',
         availRooms: '3',
-        occupied: '12',
+        occupied: '12/15',
         desc: 'A cozy boarding house perfect for students. Close to shops and restaurants in Poblacion area.',
         rules: 'Curfew at 11PM, No visitors after 9PM',
         amenities: ['Wi-Fi', 'Parking', 'Hot Water', 'Study Area'],
@@ -1551,7 +1551,7 @@
         rent: '6000',
         totalRooms: '12',
         availRooms: '5',
-        occupied: '7',
+        occupied: '7/12',
         desc: 'Modern apartments with all amenities. Perfect for groups of students. Features spacious rooms and modern facilities.',
         rules: 'No loud noise after 10PM, Shared spaces must be kept clean',
         amenities: ['Wi-Fi', 'Gym', 'CCTV', 'Water Tank', 'Parking', 'Generator'],
@@ -1683,7 +1683,13 @@
 
         let html = '';
         customProperties.forEach((p, index) => {
-          const isFull = p.occupied.split('/')[0] === p.occupied.split('/')[1];
+          // Handle both formats: "X/Y" and plain number "X"
+          const parts = (p.occupied || '').toString().split('/');
+          const occupiedCount = parts[0];
+          const totalCount = parts.length > 1 ? parts[1] : p.totalRooms;
+          const isFull = occupiedCount === totalCount;
+          const occupiedDisplay = parts.length > 1 ? p.occupied : `${p.occupied}/${p.totalRooms}`;
+          
           html += `
             <div class="property-card">
               <div class="prop-img-wrap" style="background-image: url('${p.image}')" onclick="openPropertyDetail(${index})">
@@ -1696,7 +1702,7 @@
                   <div class="prop-address">${p.address}</div>
                 </div>
                 <div class="prop-footer">
-                  <span>${p.occupied} occupied</span>
+                  <span>${occupiedDisplay} occupied</span>
                   <div class="prop-price">${p.rent}<span>/mo</span></div>
                   <button class="btn-manage-prop" onclick="openEditPropertyModal(${index})">Manage</button>
                 </div>
@@ -2194,12 +2200,6 @@
       };
 
       try {
-        const response = await fetch('/api/properties', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(propertyPayload)
-        });
-        
         const userEmail = (sessionUser.email || '').toLowerCase();
         const isDemoAccount = userEmail === 'demoowner@gmail.com';
 
