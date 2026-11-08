@@ -1251,6 +1251,170 @@
   </div>
 
   <script>
+    // ── DEMO DATA SERVICE (Hardcoded for GitHub Pages) ────────
+    const DEMO_PROPERTIES = [
+      {
+        id: 1,
+        owner_email: 'demoowner@gmail.com',
+        owner_name: 'Demo Owner',
+        name: 'Demo Dorm - Minglanilla Heights',
+        type: 'dormitory',
+        address: '123 Main St',
+        barangay: 'Minglanilla',
+        rawRent: '₱5,000',
+        rent: '5000',
+        totalRooms: '20',
+        availRooms: '8',
+        occupied: '12',
+        desc: 'This is a demo dormitory showcasing the property listing features. Located in the heart of Minglanilla near campus.',
+        rules: 'No smoking, No pets, Quiet hours 10PM-8AM',
+        amenities: ['Wi-Fi', 'Common Room', 'Kitchen', 'Laundry'],
+        image: 'https://images.unsplash.com/photo-1544716278-ca5e3af4abd8?w=500&h=300&fit=crop'
+      },
+      {
+        id: 2,
+        owner_email: 'demoowner@gmail.com',
+        owner_name: 'Demo Owner',
+        name: 'Demo Boarding House - Poblacion',
+        type: 'boarding house',
+        address: '456 Poblacion Ave',
+        barangay: 'Poblacion',
+        rawRent: '₱4,500',
+        rent: '4500',
+        totalRooms: '15',
+        availRooms: '3',
+        occupied: '12',
+        desc: 'A cozy boarding house perfect for students. Close to shops and restaurants in Poblacion area.',
+        rules: 'Curfew at 11PM, No visitors after 9PM',
+        amenities: ['Wi-Fi', 'Parking', 'Hot Water', 'Study Area'],
+        image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=500&h=300&fit=crop'
+      },
+      {
+        id: 3,
+        owner_email: 'demoowner@gmail.com',
+        owner_name: 'Demo Owner',
+        name: 'Demo Student Apartments - Calajo-an',
+        type: 'apartment',
+        address: '789 Calajo-an Street',
+        barangay: 'Calajo-an',
+        rawRent: '₱6,000',
+        rent: '6000',
+        totalRooms: '12',
+        availRooms: '5',
+        occupied: '7',
+        desc: 'Modern apartments with all amenities. Perfect for groups of students. Features spacious rooms and modern facilities.',
+        rules: 'No loud noise after 10PM, Shared spaces must be kept clean',
+        amenities: ['Wi-Fi', 'Gym', 'CCTV', 'Water Tank', 'Parking', 'Generator'],
+        image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&h=300&fit=crop'
+      }
+    ];
+
+    const DEMO_BOOKINGS_STUDENT = [
+      {
+        id: 1,
+        property_name: 'Demo Dorm - Minglanilla Heights',
+        room_name: 'Room 101',
+        student_name: 'Demo Student',
+        move_in_date: '2026-01-15',
+        message: 'This is a demo booking request',
+        rent: '₱5,000',
+        status: 'pending',
+        created_at: '2026-01-01 10:00:00'
+      }
+    ];
+
+    const DEMO_MESSAGES_STUDENT = [
+      {
+        id: 1,
+        property_id: 1,
+        property_name: 'Demo Dorm - Minglanilla Heights',
+        sender_email: 'demoowner@gmail.com',
+        sender_name: 'Demo Owner',
+        receiver_email: 'demostudent@gmail.com',
+        message: 'Hi! Thanks for your interest in our dorm. Please let me know if you have any questions!',
+        created_at: '2026-01-02 09:00:00'
+      },
+      {
+        id: 2,
+        property_id: 1,
+        property_name: 'Demo Dorm - Minglanilla Heights',
+        sender_email: 'demostudent@gmail.com',
+        sender_name: 'Demo Student',
+        receiver_email: 'demoowner@gmail.com',
+        message: 'Yes, I would like to schedule a viewing. When are you available?',
+        created_at: '2026-01-02 10:15:00'
+      }
+    ];
+
+    // ── HELPER: Detect demo mode or missing backend ────────
+    function isDemoMode() {
+      const sessionUser = JSON.parse(localStorage.getItem('df_user') || '{}');
+      const userEmail = (sessionUser.email || '').toLowerCase();
+      const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+      const isGitHubPages = window.location.hostname.includes('github.io');
+      return isDemoAccount || isGitHubPages;
+    }
+
+    // ── HELPER: Check if backend is available (simple connectivity test) ────────
+    async function isBackendAvailable() {
+      try {
+        const response = await fetch('/api/properties', { method: 'HEAD', timeout: 2000 });
+        return response.ok;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    // ── WRAPPER: Fetch with demo fallback for GET requests ────────
+    async function fetchWithDemoFallback(endpoint, demoData) {
+      const sessionUser = JSON.parse(localStorage.getItem('df_user') || '{}');
+      const userEmail = (sessionUser.email || '').toLowerCase();
+      const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+      // If demo account or GitHub Pages, return demo data immediately
+      if (isDemoAccount || window.location.hostname.includes('github.io')) {
+        return Promise.resolve({ success: true, data: demoData });
+      }
+
+      // Otherwise, try real API call
+      try {
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      } catch (err) {
+        // If real call fails and user is demo, fallback to demo data
+        if (isDemoAccount) {
+          return Promise.resolve({ success: true, data: demoData });
+        }
+        throw err;
+      }
+    }
+
+    // ── WRAPPER: POST with demo fallback ────────
+    async function postWithDemoFallback(endpoint, payload, demoResponseData) {
+      const sessionUser = JSON.parse(localStorage.getItem('df_user') || '{}');
+      const userEmail = (sessionUser.email || '').toLowerCase();
+      const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+      // If demo account, return demo success response
+      if (isDemoAccount || window.location.hostname.includes('github.io')) {
+        return Promise.resolve({ success: true, message: 'Demo mode', data: demoResponseData });
+      }
+
+      // Try real API call
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      } catch (err) {
+        throw err;
+      }
+    }
+
     let savedDormsList = [];
     let allDatabaseProperties = [];
     let activeSelectedProperty = null;
@@ -1281,6 +1445,18 @@
 
     async function fetchAllProperties() {
       try {
+        const sessionUser = JSON.parse(localStorage.getItem('df_user') || '{}');
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+        // If demo account or GitHub Pages, use demo data
+        if (isDemoAccount || window.location.hostname.includes('github.io')) {
+          allDatabaseProperties = DEMO_PROPERTIES;
+          renderStudentDorms(allDatabaseProperties);
+          return;
+        }
+
+        // Try real API call
         const response = await fetch('/api/properties');
         const data = await response.json();
         if (response.ok && data.success) {
@@ -1289,6 +1465,13 @@
         }
       } catch (err) {
         console.error('Could not load properties from database:', err);
+        // Fallback: try demo data if error
+        const sessionUser = JSON.parse(localStorage.getItem('df_user') || '{}');
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        if (userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com') {
+          allDatabaseProperties = DEMO_PROPERTIES;
+          renderStudentDorms(allDatabaseProperties);
+        }
       }
     }
 
@@ -1456,12 +1639,24 @@
       };
 
       try {
-        const response = await fetch('/api/bookings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await response.json();
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+        let response, data;
+
+        // If demo account or GitHub Pages, simulate success
+        if (isDemoAccount || window.location.hostname.includes('github.io')) {
+          data = { success: true, message: 'Booking request submitted!' };
+          response = { ok: true };
+        } else {
+          // Real API call
+          response = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          data = await response.json();
+        }
 
         if (response.ok && data.success) {
           alert('Booking request submitted!');
@@ -1482,6 +1677,20 @@
       if (!sessionUser.email) return;
 
       try {
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+        // If demo account, use demo data
+        if (isDemoAccount || window.location.hostname.includes('github.io')) {
+          if (isDemoAccount && userEmail === 'demostudent@gmail.com') {
+            renderStudentBookings(DEMO_BOOKINGS_STUDENT);
+          } else {
+            renderStudentBookings([]);
+          }
+          return;
+        }
+
+        // Try real API
         const response = await fetch(`/api/bookings?student_email=${encodeURIComponent(sessionUser.email)}`);
         const data = await response.json();
 
@@ -1490,6 +1699,11 @@
         }
       } catch (err) {
         console.error('Failed to fetch student bookings:', err);
+        // Fallback to demo data
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        if (userEmail === 'demostudent@gmail.com') {
+          renderStudentBookings(DEMO_BOOKINGS_STUDENT);
+        }
       }
     }
 
@@ -1562,12 +1776,25 @@
       };
 
       try {
-        const response = await fetch('/api/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await response.json();
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+        let response, data;
+
+        // If demo account or GitHub Pages, simulate success
+        if (isDemoAccount || window.location.hostname.includes('github.io')) {
+          data = { success: true, message: 'Message sent successfully!' };
+          response = { ok: true };
+        } else {
+          // Real API call
+          response = await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          data = await response.json();
+        }
+
         if (response.ok && data.success) {
           alert('Message sent successfully!');
           closeMessageModal();
@@ -1584,6 +1811,22 @@
       if (!sessionUser.email) return;
 
       try {
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+        // If demo account, use demo data
+        if (isDemoAccount || window.location.hostname.includes('github.io')) {
+          if (isDemoAccount && userEmail === 'demostudent@gmail.com') {
+            allUserMessages = DEMO_MESSAGES_STUDENT;
+            renderConversationsSidebar();
+          } else {
+            allUserMessages = [];
+            renderConversationsSidebar();
+          }
+          return;
+        }
+
+        // Try real API
         const response = await fetch(`/api/messages?email=${encodeURIComponent(sessionUser.email)}`);
         const data = await response.json();
         if (response.ok && data.success) {
@@ -1592,6 +1835,12 @@
         }
       } catch (err) {
         console.error('Failed to load messages:', err);
+        // Fallback to demo data
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        if (userEmail === 'demostudent@gmail.com') {
+          allUserMessages = DEMO_MESSAGES_STUDENT;
+          renderConversationsSidebar();
+        }
       }
     }
 
@@ -1685,12 +1934,25 @@
       };
 
       try {
-        const response = await fetch('/api/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await response.json();
+        const userEmail = (sessionUser.email || '').toLowerCase();
+        const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+        let response, data;
+
+        // If demo account or GitHub Pages, simulate success
+        if (isDemoAccount || window.location.hostname.includes('github.io')) {
+          data = { success: true, message: 'Message sent!' };
+          response = { ok: true };
+        } else {
+          // Real API call
+          response = await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          data = await response.json();
+        }
+
         if (response.ok && data.success) {
           input.value = '';
           await fetchUserMessages();
@@ -1742,18 +2004,40 @@
       }
 
       try {
-        const response = await fetch('/api/update-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            fullname: newName, 
-            email: userEmail,
-            phone: newPhone,
-            address: newAddress,
-            bio: newBio
-          })
-        });
-        const data = await response.json();
+        const isDemoAccount = userEmail === 'demostudent@gmail.com' || userEmail === 'demoowner@gmail.com';
+
+        let response, data;
+
+        // If demo account or GitHub Pages, simulate success
+        if (isDemoAccount || window.location.hostname.includes('github.io')) {
+          data = {
+            success: true,
+            message: 'Profile updated successfully!',
+            user: {
+              name: newName,
+              email: userEmail,
+              role: isDemoAccount ? (userEmail === 'demostudent@gmail.com' ? 'student' : 'owner') : 'student',
+              phone: newPhone,
+              address: newAddress,
+              bio: newBio
+            }
+          };
+          response = { ok: true };
+        } else {
+          // Real API call
+          response = await fetch('/api/update-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fullname: newName,
+              email: userEmail,
+              phone: newPhone,
+              address: newAddress,
+              bio: newBio
+            })
+          });
+          data = await response.json();
+        }
 
         if (response.ok && data.success) {
           document.getElementById('nav-username').textContent = data.user.name;
